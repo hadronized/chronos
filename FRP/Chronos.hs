@@ -9,7 +9,19 @@
 --
 -------------------------------------------------------------
 
-module FRP.Chronos where
+module FRP.Chronos (
+    -- * Signal
+    Signal(..)
+  , isDiscrete
+  , isContinuous
+    -- * Behavior
+  , Behavior(..)
+  , behave
+    -- * Timeline
+  , Timeline
+  , timeline
+  , commute
+  ) where
 
 import Data.List ( partition, sort )
 
