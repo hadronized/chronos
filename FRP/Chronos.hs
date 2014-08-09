@@ -47,32 +47,29 @@ data Behavior t s
   = Discrete (s -> s)
   | Continuous (t -> s -> s)
 
-newtype Line t s = Line [Signal t s] deriving (Eq,Ord)
-
-data Timeline t s = Timeline {
-    _timeLines :: [Line t s]
-  , _rea       :: s
-  }
-
-timeline :: (Ord t) => [Line t s] -> s -> Timeline t s
-timeline l r = Timeline (sort l) r
-
 behave :: t -> Behavior t s -> s -> s
 behave t b s = case b of
     Discrete   f -> f s
     Continuous f -> f t s
+
+newtype Line t s = Line [Signal t s] deriving (Eq,Ord)
+
+newtype Timeline t s = Timeline [Line t s]
+
+timeline :: (Ord t) => [Line t s] -> Timeline t s
+timeline = Timeline . sort
 
 safeLast :: [a] -> [a]
 safeLast s = case s of
     [] -> []
     _  -> [last s]
 
-commute :: (Ord t) => Timeline t s -> t -> Timeline t s
-commute (Timeline tl r) t = Timeline tl' r'
+commute :: (Ord t) => Timeline t s -> t -> (s -> s,Timeline t s)
+commute (Timeline tl) t = (f,Timeline tl')
   where
     relined = map (reline t . signals t) tl
     tl'     = map fst relined
-    r'      = foldl (flip (.)) id (concatMap snd relined) r
+    f       = foldl (flip (.)) id (concatMap snd relined)
 
 signals :: (Ord t) => t -> Line t s -> ([Signal t s],[Signal t s])
 signals t (Line sigs) = span activated sigs
@@ -86,11 +83,3 @@ reline t (active,inactive) = (Line $ lastContinuous ++ inactive,behaviors)
     lastContinuous            = safeLast continuous
     behaviors                 = map signalBehave (lastContinuous ++ discrete)
     signalBehave (Signal _ b) = behave t b
-
-test :: Timeline Int (String,Int)
-test = timeline l ("",0)
-  where
-    l = map Line
-        [
-          [Signal 2 . Discrete $ id,Signal 7 $ Discrete $ \(a,x) -> (a,x+9),Signal 9 . Continuous $ \t (a,x) -> (a,x + t)]
-        ]
