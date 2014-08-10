@@ -19,6 +19,7 @@ module FRP.Chronos (
   , behave
     -- * Timeline
   , Timeline
+  , Line(..)
   , timeline
   , commute
   ) where
