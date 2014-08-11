@@ -28,6 +28,8 @@ module FRP.Chronos (
 
 import Data.List ( partition, sort )
 
+-- |A `Signal t s` holds a behavior that occurs at a given `t` time and act on
+-- a value of type `s`. See `Behavior` for further details.
 data Signal t s = Signal t (Behavior t s)
 
 instance (Eq t) => Eq (Signal t s) where
@@ -46,33 +48,49 @@ isContinuous (Signal _ b) = case b of
     Continuous{} -> True
     _            -> False
 
+-- |A `Behavior t s` represents an endomorphism of `s` with the concept of time
+-- (defined by the `t` type).
+--
+-- If the behavior is discrete, the behavior is invoked only once, so no time
+-- information is needed.
+--
+-- If the behavior is continuous, the behavior is invoked continuously, passing
+-- the time around.
 data Behavior t s
   = Discrete (s -> s)
   | Continuous (t -> s -> s)
 
+-- |Unwrap a function from a behavior and apply it.
 behave :: t -> Behavior t s -> s -> s
 behave t b s = case b of
     Discrete   f -> f s
     Continuous f -> f t s
 
+-- |Build a discrete signal.
 discrete :: t -> (s -> s) -> Signal t s
 discrete t f = Signal t (Discrete f)
 
+-- |Build a continuous signal.
 continuous :: t -> (t -> s -> s) -> Signal t s
 continuous t f = Signal t (Continuous f)
 
+-- |A line is an entry in a timeline. It’s some kind of helper used to group
+-- signals that act on the same thing or do similar thing. You can imagine
+-- building a line that hosts several discrete same signals at different times.
 newtype Line t s = Line [Signal t s] deriving (Eq,Ord)
 
+-- |A timeline gathers lines in order to build a complete time-reactive
+-- environnement.
+--
+-- You can’t directly construct a `Timeline t s`. See the `timeline` function
+-- for such a purpose.
 newtype Timeline t s = Timeline [Line t s]
 
+-- |Build a timeline from lines.
 timeline :: (Ord t) => [Line t s] -> Timeline t s
 timeline = Timeline . sort
 
-safeLast :: [a] -> [a]
-safeLast s = case s of
-    [] -> []
-    _  -> [last s]
-
+-- |Commute a line, pulsating/killing signals.
 commute :: (Ord t) => Timeline t s -> t -> (s -> s,Timeline t s)
 commute (Timeline tl) t = (f,Timeline tl')
   where
@@ -92,3 +110,9 @@ reline t (active,inactive) = (Line $ lastContinuous ++ inactive,behaviors)
     lastContinuous            = safeLast continuous
     behaviors                 = map signalBehave (lastContinuous ++ discrete)
     signalBehave (Signal _ b) = behave t b
+
+-- Safe last.
+safeLast :: [a] -> [a]
+safeLast s = case s of
+    [] -> []
+    _  -> [last s]
