@@ -1,4 +1,4 @@
-﻿-------------------------------------------------------------
+-------------------------------------------------------------
 -- |
 -- Module      : FRP.Chronos
 -- Copyright   : (C) 2014 Dimitri Sabadie
@@ -14,6 +14,8 @@ module FRP.Chronos (
     Signal(..)
   , isDiscrete
   , isContinuous
+  , discrete
+  , continuous
     -- * Behavior
   , Behavior(..)
   , behave
@@ -52,6 +54,12 @@ behave :: t -> Behavior t s -> s -> s
 behave t b s = case b of
     Discrete   f -> f s
     Continuous f -> f t s
+
+discrete :: t -> (s -> s) -> Signal t s
+discrete t f = Signal t (Discrete f)
+
+continuous :: t -> (t -> s -> s) -> Signal t s
+continuous t f = Signal t (Continuous f)
 
 newtype Line t s = Line [Signal t s] deriving (Eq,Ord)
 
