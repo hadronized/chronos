@@ -28,7 +28,7 @@ module FRP.Chronos (
 
 import Data.List ( partition, sort )
 
--- |A `Signal t s` holds a behavior that occurs at a given `t` time and act on
+-- |A `Signal t s` holds a behavior that occurs at a given `t` time and acts on
 -- a value of type `s`. See `Behavior` for further details.
 data Signal t s = Signal t (Behavior t s)
 
