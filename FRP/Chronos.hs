@@ -106,9 +106,9 @@ signals t (Line sigs) = span activated sigs
 reline :: t -> ([Signal t s],[Signal t s]) -> (Line t s,[s -> s])
 reline t (active,inactive) = (Line $ lastContinuous ++ inactive,behaviors)
   where
-    (discrete,continuous)     = partition isDiscrete active
-    lastContinuous            = safeLast continuous
-    behaviors                 = map signalBehave (lastContinuous ++ discrete)
+    (disc,cont)     = partition isDiscrete active
+    lastContinuous  = safeLast cont
+    behaviors       = map signalBehave (lastContinuous ++ disc)
     signalBehave (Signal _ b) = behave t b
 
 -- Safe last.
