@@ -29,8 +29,8 @@ import Data.Monoid ( (<>) )
 --
 -- A `Pulse t f` signal is a simple function `s -> s` pulsed at `t`.
 --
--- A `Continuous start end ft` is a function `t -> s -> s` continuously fed by
--- time `t`. It starts at `start` and vanish at `end`.
+-- A `Continuous start end ft` signal is a function `t -> s -> s` continuously
+-- fed by time `t`. It starts at `start` and vanish at `end`.
 data Signal t s
   = Pulse t (s -> s)
   | Continuous t t (t -> s -> s)
