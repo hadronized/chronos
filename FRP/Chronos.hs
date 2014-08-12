@@ -84,7 +84,7 @@ commute (Timeline tl) t = (f,Timeline tl')
     tl'     = map fst relined
     f       = foldl (flip (.)) id (concatMap snd relined)
 
--- |Get active and unactive signal from a `Line`.
+-- |Get active and unactive signals from a `Line`.
 signals :: (Ord t) => t -> Line t s -> ([Signal t s],[Signal t s])
 signals t (Line sigs) = span activated sigs
   where
