@@ -15,12 +15,10 @@ module FRP.Chronos (
   , isPulse
   , isContinuous
     -- * Timeline
-    {-
   , Timeline
   , Line(..)
   , timeline
   , commute
-    -}
   ) where
 
 import Data.List ( partition, sort )
@@ -78,15 +76,13 @@ newtype Timeline t s = Timeline [Line t s]
 timeline :: (Ord t) => [Line t s] -> Timeline t s
 timeline = Timeline . sort
 
-{-
 -- |Commute a line, pulsating/killing signals.
 commute :: (Ord t) => Timeline t s -> t -> (s -> s,Timeline t s)
 commute (Timeline tl) t = (f,Timeline tl')
   where
-    relined = map (reline t . signals t) tl
+    relined = map (reline t) tl
     tl'     = map fst relined
     f       = foldl (flip (.)) id (concatMap snd relined)
--}
 
 -- |Get active and unactive signal from a `Line`.
 signals :: (Ord t) => t -> Line t s -> ([Signal t s],[Signal t s])
