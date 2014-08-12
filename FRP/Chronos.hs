@@ -12,71 +12,59 @@
 module FRP.Chronos (
     -- * Signal
     Signal(..)
-  , isDiscrete
+  , isPulse
   , isContinuous
-  , discrete
-  , continuous
-    -- * Behavior
-  , Behavior(..)
-  , behave
     -- * Timeline
+    {-
   , Timeline
   , Line(..)
   , timeline
   , commute
+    -}
   ) where
 
 import Data.List ( partition, sort )
+import Data.Monoid ( (<>) )
 
--- |A `Signal t s` holds a behavior that occurs at a given `t` time and acts on
--- a value of type `s`. See `Behavior` for further details.
-data Signal t s = Signal t (Behavior t s)
+-- |A `Signal t s` holds an endormophism that occurs at a given `t` time and
+-- acts on a value of type `s`. Signals can be either Pulse or continuous.
+--
+-- A `Pulse t f` signal is a simple function `s -> s` pulsed at `t`.
+--
+-- A `Continuous start end ft` is a function `t -> s -> s` continuously fed by
+-- time `t`. It starts at `start` and vanish at `end`.
+data Signal t s
+  = Pulse t (s -> s)
+  | Continuous t t (t -> s -> s)
 
 instance (Eq t) => Eq (Signal t s) where
-  Signal t0 _ == Signal t1 _ = t0 == t1
+  Pulse t0 _ == Pulse t1 _    = t0 == t1
+  Continuous s0 e0 _ == Continuous s1 e1 _ = s0 == s1 && e0 == e1
 
 instance (Ord t) => Ord (Signal t s) where
-  Signal t0 _ `compare` Signal t1 _ = compare t0 t1
+  Pulse t0 _ `compare` Pulse t1 _ = compare t0 t1
+  Continuous s0 e0 _ `compare` Continuous s1 e1 _ = compare s0 s1 <> compare e0 e1
+  Pulse t _ `compare` Continuous s _ _ = compare t s
+  Continuous s _ _ `compare` Pulse t _ = compare t s
 
-isDiscrete :: Signal t s -> Bool
-isDiscrete (Signal _ b) = case b of
-    Discrete{} -> True
-    _          -> False
+isPulse :: Signal t s -> Bool
+isPulse Pulse{} = True
+isPulse _       = False
 
 isContinuous :: Signal t s -> Bool
-isContinuous (Signal _ b) = case b of
-    Continuous{} -> True
-    _            -> False
+isContinuous Continuous{} = True
+isContinuous _            = False
 
--- |A `Behavior t s` represents an endomorphism of `s` with the concept of time
--- (defined by the `t` type).
---
--- If the behavior is discrete, the behavior is invoked only once, so no time
--- information is needed.
---
--- If the behavior is continuous, the behavior is invoked continuously, passing
--- the time around.
-data Behavior t s
-  = Discrete (s -> s)
-  | Continuous (t -> s -> s)
-
--- |Unwrap a function from a behavior and apply it.
-behave :: t -> Behavior t s -> s -> s
+-- |Unwrap a function from a signal and apply it without checking time
+-- conditions.
+behave :: t -> Signal t s -> s -> s
 behave t b s = case b of
-    Discrete   f -> f s
-    Continuous f -> f t s
-
--- |Build a discrete signal.
-discrete :: t -> (s -> s) -> Signal t s
-discrete t f = Signal t (Discrete f)
-
--- |Build a continuous signal.
-continuous :: t -> (t -> s -> s) -> Signal t s
-continuous t f = Signal t (Continuous f)
+    Pulse   _ f      -> f s
+    Continuous _ _ f -> f t s
 
 -- |A line is an entry in a timeline. It’s some kind of helper used to group
 -- signals that act on the same thing or do similar thing. You can imagine
--- building a line that hosts several discrete same signals at different times.
+-- building a line that hosts several Pulse same signals at different times.
 newtype Line t s = Line [Signal t s] deriving (Eq,Ord)
 
 -- |A timeline gathers lines in order to build a complete time-reactive
@@ -90,6 +78,7 @@ newtype Timeline t s = Timeline [Line t s]
 timeline :: (Ord t) => [Line t s] -> Timeline t s
 timeline = Timeline . sort
 
+{-
 -- |Commute a line, pulsating/killing signals.
 commute :: (Ord t) => Timeline t s -> t -> (s -> s,Timeline t s)
 commute (Timeline tl) t = (f,Timeline tl')
@@ -97,19 +86,24 @@ commute (Timeline tl) t = (f,Timeline tl')
     relined = map (reline t . signals t) tl
     tl'     = map fst relined
     f       = foldl (flip (.)) id (concatMap snd relined)
+-}
 
+-- |Get active and unactive signal from a `Line`.
 signals :: (Ord t) => t -> Line t s -> ([Signal t s],[Signal t s])
 signals t (Line sigs) = span activated sigs
   where
-    activated (Signal st _) = t >= st
+    activated s = case s of
+      Pulse t0 _       -> t >= t0
+      Continuous s e _ -> t >= s && t < e
 
-reline :: t -> ([Signal t s],[Signal t s]) -> (Line t s,[s -> s])
-reline t (active,inactive) = (Line $ lastContinuous ++ inactive,behaviors)
+-- |Reconstruct a `Line` according to time.
+reline :: (Ord t) => t -> Line t s -> (Line t s,[s -> s])
+reline t l = (Line $ lastContinuous ++ inactive,f)
   where
-    (disc,cont)     = partition isDiscrete active
-    lastContinuous  = safeLast cont
-    behaviors       = map signalBehave (lastContinuous ++ disc)
-    signalBehave (Signal _ b) = behave t b
+    (active,inactive) = signals t l
+    (disc,cont)       = partition isPulse active
+    lastContinuous    = safeLast cont
+    f                 = map (behave t) (lastContinuous ++ disc)
 
 -- Safe last.
 safeLast :: [a] -> [a]
