@@ -38,6 +38,7 @@ data Signal t s
 instance (Eq t) => Eq (Signal t s) where
   Pulse t0 _ == Pulse t1 _    = t0 == t1
   Continuous s0 e0 _ == Continuous s1 e1 _ = s0 == s1 && e0 == e1
+  _ == _ = False
 
 instance (Ord t) => Ord (Signal t s) where
   Pulse t0 _ `compare` Pulse t1 _ = compare t0 t1
