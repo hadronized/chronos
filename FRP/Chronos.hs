@@ -88,7 +88,7 @@ commute (Timeline tl) t = (f,Timeline tl')
 signals :: (Ord t) => t -> Line t s -> ([Signal t s],[Signal t s])
 signals t (Line sigs) = span activated sigs
   where
-    activated s = case s of
+    activated sig = case sig of
       Pulse t0 _       -> t >= t0
       Continuous s e _ -> t >= s && t < e
 
