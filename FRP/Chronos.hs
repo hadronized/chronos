@@ -24,7 +24,7 @@ module FRP.Chronos (
 import Data.List ( partition, sort )
 import Data.Monoid ( (<>) )
 
--- |A `Signal t s` holds an endormophism that occurs at a given `t` time and
+-- |A `Signal t s` holds an endomorphism that occurs at a given `t` time and
 -- acts on a value of type `s`. Signals can be either Pulse or continuous.
 --
 -- A `Pulse t f` signal is a simple function `s -> s` pulsed at `t`.
